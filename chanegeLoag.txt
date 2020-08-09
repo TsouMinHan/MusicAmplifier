@@ -1,2 +1,6 @@
 2020.08.09
 專案開始
+add a new function.
+    - get all .wav and .mp3 file in directory.
+    - get mode number of all music.
+    - create new music file.
