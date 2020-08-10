@@ -18,8 +18,11 @@ async function run(){
 };
 
 eel.expose(set_progressbar);
-function set_progressbar(msg, progress_rate) {
-    console.log(progress_rate);
-    document.getElementById("progressbar-msg").innerText = msg;
+function set_progressbar(progress_rate) {
     document.getElementById("progressbar").style.width = `${progress_rate}%`;
+};
+
+eel.expose(set_msg);
+function set_msg(msg) {
+    document.getElementById("progressbar-msg").innerText = msg;
 };

@@ -1,5 +1,5 @@
 {
-    "input_directory": "C:/Users/Tsou/Desktop/program/python/MusicAmplifier",
-    "output_directory": "C:/Users/Tsou/Desktop/program/python",
-    "amplitude": 1
+    "directory": "./MusicAmplifier",
+    "export_directory": "./",
+    "amplitude": -11
 }

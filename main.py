@@ -54,6 +54,7 @@ def execute_audio(input_directory, output_directory, mode, db_num):
     input_directory = Path(input_directory)
     output_directory = Path(output_directory)
 
+    eel.set_msg("讀取檔案中！請稍後！")
     # lsit of Path.
     path_ls = sorted(
         filter(filter_audio_format, input_directory.rglob('*'))
@@ -85,8 +86,9 @@ def execute_audio(input_directory, output_directory, mode, db_num):
             new_file = process_one(audio, db_num, f)
 
         audio_script.export_audio(new_file, path, tags)
-        
-        eel.set_progressbar(f"目前進度：{i+1} / {len(auido_ls)}", (i+1)/len(auido_ls)*100)
+
+        eel.set_msg(f"目前進度：{i+1} / {len(auido_ls)} === {round(audio.dBFS)}db > {db_num}db")
+        eel.set_progressbar((i+1)/len(auido_ls)*100)
 
     return db_num
 
@@ -111,4 +113,4 @@ if __name__ == '__main__':
 
     setup_html()
 
-    eel.start("main.html")
+    eel.start("main.html", size=(800, 350))
