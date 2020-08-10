@@ -68,7 +68,7 @@ def execute_audio(input_directory, output_directory, mode, db_num):
         )
     )
 
-    db_num = db_num if mode !="average" else audio_script.get_mode_num(auido_ls)
+    db_num = db_num if mode !="mode_number" else audio_script.get_mode_num(auido_ls)
     
     for i in range(len(auido_ls)):          
         audio = auido_ls[i]
@@ -82,7 +82,7 @@ def execute_audio(input_directory, output_directory, mode, db_num):
         elif mode=="minus":
             new_file = audio - db_num - f
         
-        else: # old and average mode.
+        else: # old and mode_number mode.
             new_file = process_one(audio, db_num, f)
 
         audio_script.export_audio(new_file, path, tags)
