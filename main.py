@@ -1,51 +1,37 @@
 from pydub.utils import mediainfo
-from pydub import AudioSegment
+from traceback import print_exc
 from pathlib import Path
-import operator
-import json
 import math
+import json
+import eel
 
-import audio
+import audio_script
 
-def transfer_audio(file):
-    try:
-        return AudioSegment.from_file(f"{file}", format=f"mp3")
-    except Exception as e:
-        print(e)
-        return None
+JSON_FILE = "./doc.json"
 
-def export_audio(audio, path):    
-    audio.export(f"{path}", format="mp3")
-
-def get_doc():
-    with open("./doc.json", "r", encoding="utf8") as json_file:
+def get_director():
+    with open(JSON_FILE, "r", encoding="utf8") as json_file:
         data = json.load(json_file)
     
     return data
 
-def filter_audio_format(file: Path):
-    file_format_ls = [".wav", ".mp3"]
+def setup_html():
+    data = get_director()    
+    eel.set_directory(data)
 
-    if file.suffix in file_format_ls:
-        return True
-    return False
+def save_record(input_directory, output_directory, amplitude):
+    dc = {
+        "input_directory": input_directory,
+        "output_directory": output_directory,
+        "amplitude": amplitude
+    }
 
-def get_mode(auido_ls):
-    dc = dict()
-    for audio in auido_ls:
-        db = round(audio.dBFS)
-        if dc.get(db, ""):
-            dc[db] += 1
-        else:
-            dc[db] = 1
+    with open(JSON_FILE, 'w', encoding='utf-8') as json_file:
+        json.dump(dc, json_file)
 
-    return max(dc.items(), key=operator.itemgetter(1))[0]
+def process_one(audio, db, f):
+    gap = round(audio.dBFS) - db
 
-def export_audio(audio, mode_db, path, tags):
-    gap = round(audio.dBFS) - mode_db
-    f = math.modf(audio.dBFS)[0]
-    
-    # adjust db and create new AudioSegment.
     if gap==0:
         new_file = audio - f
 
@@ -54,33 +40,75 @@ def export_audio(audio, mode_db, path, tags):
     
     else:
         new_file = audio - gap - f
-    
-    new_file.export(
-        f"{path}",
-        format="mp3",
-        tags=tags
-    )
 
-if __name__ == '__main__':
-    doc_dc = get_doc()
+    return new_file
 
-    DIRECTORY = Path(doc_dc["directory"])
-    EXPORT_DIRECTORY = Path(doc_dc["export_directory"])
+def filter_audio_format(file: Path):
+    file_format_ls = [".wav", ".mp3", ".flac"]
+
+    if file.suffix in file_format_ls:
+        return True
+    return False
+
+def execute_audio(input_directory, output_directory, mode, db_num):  
+    input_directory = Path(input_directory)
+    output_directory = Path(output_directory)
 
     # lsit of Path.
     path_ls = sorted(
-        filter(filter_audio_format, DIRECTORY.rglob('*'))
+        filter(filter_audio_format, input_directory.rglob('*'))
     )
 
     # list of AudioSegment.
     auido_ls = list(
-        map(lambda file: transfer_audio(file), path_ls)
+        map(
+            lambda file: audio_script.transfer_audio(file),
+            path_ls
+        )
     )
 
-    mode_db = get_mode(auido_ls)
-
-    for i in range(len(auido_ls)):
+    db_num = db_num if mode !="average" else audio_script.get_mode_num(auido_ls)
+    
+    for i in range(len(auido_ls)):          
         audio = auido_ls[i]
-        path = Path(EXPORT_DIRECTORY, path_ls[i].name)
+        path = Path(output_directory, path_ls[i].name)
         tags = mediainfo(f"{path_ls[i].name}").get('TAG',None)
-        export_audio(audio, mode_db, path, tags)
+        f = math.modf(audio.dBFS)[0]
+
+        if mode=="plus":
+            new_file = audio + db_num - f
+
+        elif mode=="minus":
+            new_file = audio - db_num - f
+        
+        else: # old and average mode.
+            new_file = process_one(audio, db_num, f)
+
+        audio_script.export_audio(new_file, path, tags)
+        
+        eel.set_progressbar(f"目前進度：{i+1} / {len(auido_ls)}", (i+1)/len(auido_ls)*100)
+
+    return db_num
+
+@eel.expose
+def run(data):
+    input_directory = data["input"]
+    output_directory = data["output"]
+    mode = data["mode"]
+    num = data["num"]
+
+    try:        
+        db_num = execute_audio(input_directory, output_directory, mode, num)
+        save_record(input_directory, output_directory, db_num)
+        return "Finished !!"
+
+    except Exception as e:   
+        print_exc(e)     
+        return str(e)
+
+if __name__ == '__main__':
+    eel.init("web")
+
+    setup_html()
+
+    eel.start("main.html")
